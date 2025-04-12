@@ -1,115 +1,155 @@
-const canvasSketch = require('canvas-sketch');
-const random = require ('canvas-sketch-util/random');
-const math = require ('canvas-sketch-util/math');
-const Tweakpane = require('tweakpane');
 
-const settings = {
-  dimensions: [ 1080, 1080 ],
-  animate:true
-};
+// sketch.js
+let table;
+let etapas = [];
+let lineCounts = [];
+let tempMin = [];
+let tempMax = [];
+let etapasNombres = [];
 
-const params = {
-  cols:25,
-  rows:25,
-  scaleMin:0.5,
-  scaleMax:2.5,
-  freq:0.002,
-  amp:0.7,
-  frame:0,
-  animate: true,
-  lineCap: 'round',
-};
+let posicionesX = [];
+let posicionesY = [];
+let rotaciones = [];
+let tamanios = [];
+let grosores = [];
 
+let selectedEtapa = 0;
+let dragging = false;
+let dragIndex = -1;
+let sliderActivo = "";
 
-const sketch = () => {
-  return ({ context, width, height,frame }) => {
-    context.fillStyle = 'black';
-    context.fillRect(0, 0, width, height);
+let zoomActivo = false;
+let dragActivo = false;
 
-const cols = params.cols;
-const rows = params.rows;
-const numCells = cols*rows;
+let fuente;
+let exportarSVG = false;
 
-const gridw = width * 0.8;
-const gridh = height * 0.8;
-const cellw = gridw / cols;
-const cellh = gridh / rows;
-
-const margx= (width-gridw) * 0.5;
-const margy= (height-gridh) * 0.5;
-
-
-
-for ( let i =0; i< numCells;i++){
-
-  const col = i % cols;
-  const row = Math.floor( i / cols );
-
-  const x = col*cellw;
-  const y = row*cellh;
-
-  const w= cellw*0.8;
-  const h= cellh*0.8;
-
-  const f=params.animate? frame: params.frame;
-
-  //const n = random.noise2D(x+frame*5,y,params.freq);
-  const n = random.noise3D(x,y,f*10,params.freq);
-
-  const angle = n*Math.PI*params.amp;
-
-  // const scale = (n+1)/2*15;
-  //const scale=(n*0.5+0.5)*15;
-  const scale = math.mapRange(n,-1,1,params.scaleMin,params.scaleMax);
-
-
-
-  let myr=math.mapRange(n,-1,1,0,255);
-
-
-
-  context.save();
-
-    context.translate(x+(cellw*0.5)+margx,y+(cellh*0.5)+margy);
-    context.rotate(angle);
-
-    context.lineWidth=scale;
-    context.lineCap=params.lineCap;
-    context.strokeStyle = 'rgb('+myr.toString()+',200,250)';
-
-    context.beginPath();
-    context.lineTo(cellw,0);
-
-    context.arc(0,0,w*0.15,0,2*Math.PI);
-
-    context.stroke();
-
-  context.restore();
+function preload() {
+  table = loadTable('data/escalas_magma_matter.csv', 'csv', 'header');
+  fuente = loadFont('https://cdnjs.cloudflare.com/ajax/libs/topcoat/0.8.0/font/SourceCodePro-Regular.otf');
 }
 
-  };
-};
+function setup() {
+  createCanvas(windowWidth, 1600);
+  textFont(fuente);
+  textAlign(CENTER, CENTER);
+  noFill();
 
-const createPane =() =>{
-  const pane = new Tweakpane.Pane();
-  let folder;
+  for (let r = 0; r < table.getRowCount(); r++) {
+    etapas.push(r);
+    etapasNombres.push(table.getString(r, 'volcan'));
+    tempMin.push(table.getNum(r, 'Tmin'));
+    tempMax.push(table.getNum(r, 'Tmax'));
+    lineCounts.push(int(map(table.getNum(r, 'days'), 0, 80000000, 5, 120)));
 
-  folder = pane.addFolder({title:'Grid'});
-  folder.addInput(params,'lineCap',{options:{butt:'butt',round:'round',square:'square'}});
-  folder.addInput(params,'cols',{min:2, max:50,step:1});
-  folder.addInput(params,'rows',{min:2, max:50,step:1});
-  folder.addInput(params,'scaleMin',{min:0, max:10});
-  folder.addInput(params,'scaleMax',{min:2, max:20});
-
-  folder =pane.addFolder({title:'Noise'});
-  folder.addInput(params,'freq',{min:-0.01,max:0.01 });
-  folder.addInput(params,'amp',{min:0,max:1});
-
-  folder.addInput(params, 'animate');
-  folder.addInput(params,'frame',{min:0,max:999});
-
+    posicionesX.push(100);
+    posicionesY.push(200 + r * 250);
+    rotaciones.push(0);
+    tamanios.push(32);
+    grosores.push(1);
+  }
 }
 
-createPane();
+function draw() {
+  if (exportarSVG) {
+    createCanvas(windowWidth, 1600, SVG);
+    exportarSVG = false;
+  }
 
-canvasSketch(sketch, settings);
+  background(255);
+  stroke(0);
+  strokeWeight(1);
+  textAlign(CENTER, CENTER);
+
+  for (let i = 0; i < etapas.length; i++) {
+    let yBase = posicionesY[i];
+    let n = lineCounts[i];
+    let espacio = 6;
+    strokeWeight(grosores[i]);
+    for (let j = 0; j < n; j++) {
+      let y = yBase + j * espacio;
+      beginShape();
+      for (let x = 300; x < width; x += 10) {
+        let ruido = noise(x * 0.005, y * 0.005, i * 10) * 40;
+        let deformado = y + sin(x * 0.01 + i) * ruido * 0.1;
+        vertex(x, deformado);
+      }
+      endShape();
+    }
+
+    fill(0);
+    noStroke();
+    textSize(10);
+    text("Tmin: " + tempMin[i] + "°", width - 60, yBase - 20);
+    text("Tmax: " + tempMax[i] + "°", width - 60, yBase + n * espacio + 10);
+  }
+
+  for (let i = 0; i < etapas.length; i++) {
+    push();
+    translate(posicionesX[i], posicionesY[i]);
+    rotate(radians(rotaciones[i]));
+    textSize(tamanios[i]);
+    fill(0);
+    noStroke();
+    text(etapasNombres[i], 0, 0);
+    pop();
+  }
+}
+
+function keyPressed() {
+  if (sliderActivo !== "") {
+    let i = selectedEtapa;
+    if (keyCode === LEFT_ARROW) {
+      if (sliderActivo === "X") posicionesX[i] -= 1;
+      if (sliderActivo === "Y") posicionesY[i] -= 1;
+      if (sliderActivo === "R") rotaciones[i] -= 1;
+      if (sliderActivo === "S") tamanios[i] = max(1, tamanios[i] - 1);
+      if (sliderActivo === "T") grosores[i] = max(1, grosores[i] - 1);
+    } else if (keyCode === RIGHT_ARROW) {
+      if (sliderActivo === "X") posicionesX[i] += 1;
+      if (sliderActivo === "Y") posicionesY[i] += 1;
+      if (sliderActivo === "R") rotaciones[i] += 1;
+      if (sliderActivo === "S") tamanios[i] += 1;
+      if (sliderActivo === "T") grosores[i] += 1;
+    }
+  }
+}
+
+function mousePressed() {
+  if (mouseX < 300) {
+    if (mouseY > 100 && mouseY < 130) sliderActivo = "X";
+    else if (mouseY > 140 && mouseY < 170) sliderActivo = "Y";
+    else if (mouseY > 180 && mouseY < 210) sliderActivo = "R";
+    else if (mouseY > 220 && mouseY < 250) sliderActivo = "S";
+    else if (mouseY > 260 && mouseY < 290) sliderActivo = "T";
+    else sliderActivo = "";
+  }
+
+  for (let i = 0; i < etapas.length; i++) {
+    let d = dist(mouseX, mouseY, posicionesX[i], posicionesY[i]);
+    if (d < 50) {
+      dragging = true;
+      dragIndex = i;
+      break;
+    }
+  }
+}
+
+function mouseDragged() {
+  if (dragging && dragIndex !== -1) {
+    posicionesX[dragIndex] = mouseX;
+    posicionesY[dragIndex] = mouseY;
+  }
+}
+
+function mouseReleased() {
+  dragging = false;
+  dragIndex = -1;
+}
+
+function keyTyped() {
+  if (key === 'e' || key === 'E') {
+    exportarSVG = true;
+    save("magmamatters_export.svg");
+  }
+}
