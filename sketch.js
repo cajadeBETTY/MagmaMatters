@@ -1,4 +1,3 @@
-
 let table;
 let etapas = [];
 let lineCounts = [];
@@ -6,7 +5,6 @@ let tempMin = [];
 let tempMax = [];
 let midTemps = [];
 let etapasNombres = [];
-let etapasColores = [];
 
 let posicionesX = [];
 let posicionesY = [];
@@ -22,11 +20,8 @@ let dragIndex = -1;
 let panelAncho = 300;
 let zoomActivo = false;
 let dragActivo = false;
-let enableZoom = true;
-let enableDrag = true;
 
 let fuente;
-let exportarSVG = false;
 
 function preload() {
   table = loadTable('data/Escalas_Magma_Matter_CSV_OK.csv', 'csv', 'header');
@@ -39,13 +34,12 @@ function setup() {
   textAlign(CENTER, CENTER);
   noFill();
 
-  // Leer datos del CSV
   for (let r = 0; r < table.getRowCount(); r++) {
     let nombre = table.getString(r, "volcan");
     let minT = table.getNum(r, "Tmin");
     let maxT = table.getNum(r, "Tmax");
-    let midT = table.getNum(r, "mid");
-    let lines = int(map(table.getNum(r, "days"), 0, 80000000, 5, 120));
+    let midT = (minT + maxT) / 2;
+    let lines = int(map(table.getNum(r, "Years"), 0, 500000, 5, 120));
 
     etapas.push(r);
     etapasNombres.push(nombre);
@@ -63,17 +57,11 @@ function setup() {
 }
 
 function draw() {
-  if (exportarSVG) {
-    createCanvas(windowWidth, 1600, SVG);
-    exportarSVG = false;
-  }
-
   background(255);
   stroke(0);
   strokeWeight(1);
   textAlign(CENTER, CENTER);
 
-  // Dibujar líneas por etapa
   for (let i = 0; i < etapas.length; i++) {
     let yBase = posicionesY[i];
     let n = lineCounts[i];
@@ -83,8 +71,6 @@ function draw() {
 
     strokeWeight(grosores[i]);
     for (let j = 0; j < n; j++) {
-      let x1 = panelAncho;
-      let x2 = width;
       let y = yBase + j * espacio;
 
       beginShape();
@@ -96,7 +82,6 @@ function draw() {
       endShape();
     }
 
-    // Etiquetas de temperatura (arriba y abajo)
     fill(0);
     noStroke();
     textSize(10);
@@ -104,7 +89,6 @@ function draw() {
     text("Tmax: " + maxT + "°", width - 60, yBase + n * espacio + 10);
   }
 
-  // Dibujar etiquetas arrastrables
   for (let i = 0; i < etapas.length; i++) {
     push();
     translate(posicionesX[i], posicionesY[i]);
@@ -137,7 +121,6 @@ function keyPressed() {
 }
 
 function mousePressed() {
-  // Activar slider
   if (mouseX < panelAncho) {
     if (mouseY > 100 && mouseY < 130) sliderActivo = "X";
     else if (mouseY > 140 && mouseY < 170) sliderActivo = "Y";
@@ -147,7 +130,6 @@ function mousePressed() {
     else sliderActivo = "";
   }
 
-  // Activar arrastre si clic en texto
   for (let i = 0; i < etapas.length; i++) {
     let d = dist(mouseX, mouseY, posicionesX[i], posicionesY[i]);
     if (d < 50) {
@@ -172,7 +154,6 @@ function mouseReleased() {
 
 function keyTyped() {
   if (key === 'e' || key === 'E') {
-    exportarSVG = true;
-    save("magmamatters_export.svg");
+    saveCanvas("magmamatters_export", "svg");
   }
 }
