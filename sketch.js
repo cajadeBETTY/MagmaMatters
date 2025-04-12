@@ -1,3 +1,4 @@
+
 let table;
 let etapas = [];
 let lineCounts = [];
@@ -20,8 +21,11 @@ let dragIndex = -1;
 let panelAncho = 300;
 let zoomActivo = false;
 let dragActivo = false;
+let enableZoom = true;
+let enableDrag = true;
 
 let fuente;
+let exportarSVG = false;
 
 function preload() {
   table = loadTable('data/Escalas_Magma_Matter_CSV_OK.csv', 'csv', 'header');
@@ -39,7 +43,11 @@ function setup() {
     let minT = table.getNum(r, "Tmin");
     let maxT = table.getNum(r, "Tmax");
     let midT = (minT + maxT) / 2;
-    let lines = int(map(table.getNum(r, "Years"), 0, 500000, 5, 120));
+
+    let years = table.getNum(r, "Years");
+    if (isNaN(years)) years = 0;
+
+    let lines = int(map(years, 0, 500000, 5, 120));
 
     etapas.push(r);
     etapasNombres.push(nombre);
@@ -61,6 +69,8 @@ function draw() {
   stroke(0);
   strokeWeight(1);
   textAlign(CENTER, CENTER);
+
+  drawPanel();
 
   for (let i = 0; i < etapas.length; i++) {
     let yBase = posicionesY[i];
@@ -101,6 +111,71 @@ function draw() {
   }
 }
 
+function drawPanel() {
+  fill(245);
+  noStroke();
+  rect(0, 0, panelAncho, height);
+
+  textAlign(LEFT, CENTER);
+  fill(0);
+  textSize(14);
+  text("ZOOM", 10, 30);
+  text("DRAG", 10, 60);
+
+  fill(zoomActivo ? 'blue' : 200);
+  rect(60, 20, 20, 20);
+
+  fill(dragActivo ? 'blue' : 200);
+  rect(60, 50, 20, 20);
+
+  let botones = ["EROSION", "COOLING", "ERUPTION", "RISING", "FORMATION"];
+  for (let i = 0; i < botones.length; i++) {
+    fill(i === selectedEtapa ? 'deepskyblue' : 180);
+    rect(10, 100 + i * 30, 130, 25);
+    fill(255);
+    textAlign(CENTER, CENTER);
+    text(botones[i], 75, 112 + i * 30);
+  }
+
+  let labels = ["MOVE X", "MOVE Y", "ROTATION", "SIZE", "THICKNESS"];
+  for (let i = 0; i < labels.length; i++) {
+    fill(sliderActivo === "XYRST"[i] ? 'navy' : 80);
+    rect(10, 280 + i * 40, 150, 25);
+    fill(255);
+    textAlign(LEFT, CENTER);
+    text(labels[i], 15, 292 + i * 40);
+  }
+
+  fill(0);
+  rect(10, 500, 130, 30);
+  fill(255);
+  text("EXPORTAR SVG", 75, 515);
+}
+
+function mousePressed() {
+  if (mouseX < panelAncho) {
+    if (mouseY >= 20 && mouseY <= 40) zoomActivo = !zoomActivo;
+    else if (mouseY >= 50 && mouseY <= 70) dragActivo = !dragActivo;
+    else if (mouseY >= 100 && mouseY <= 250) {
+      selectedEtapa = int((mouseY - 100) / 30);
+    } else if (mouseY >= 280 && mouseY <= 480) {
+      let index = int((mouseY - 280) / 40);
+      sliderActivo = "XYRST"[index];
+    } else if (mouseY >= 500 && mouseY <= 530) {
+      saveCanvas("magmamatters_export", "svg");
+    }
+  }
+
+  for (let i = 0; i < etapas.length; i++) {
+    let d = dist(mouseX, mouseY, posicionesX[i], posicionesY[i]);
+    if (d < 50) {
+      dragging = true;
+      dragIndex = i;
+      break;
+    }
+  }
+}
+
 function keyPressed() {
   if (sliderActivo !== "") {
     let i = selectedEtapa;
@@ -116,26 +191,6 @@ function keyPressed() {
       if (sliderActivo === "R") rotaciones[i] += 1;
       if (sliderActivo === "S") tamanios[i] += 1;
       if (sliderActivo === "T") grosores[i] += 1;
-    }
-  }
-}
-
-function mousePressed() {
-  if (mouseX < panelAncho) {
-    if (mouseY > 100 && mouseY < 130) sliderActivo = "X";
-    else if (mouseY > 140 && mouseY < 170) sliderActivo = "Y";
-    else if (mouseY > 180 && mouseY < 210) sliderActivo = "R";
-    else if (mouseY > 220 && mouseY < 250) sliderActivo = "S";
-    else if (mouseY > 260 && mouseY < 290) sliderActivo = "T";
-    else sliderActivo = "";
-  }
-
-  for (let i = 0; i < etapas.length; i++) {
-    let d = dist(mouseX, mouseY, posicionesX[i], posicionesY[i]);
-    if (d < 50) {
-      dragging = true;
-      dragIndex = i;
-      break;
     }
   }
 }
