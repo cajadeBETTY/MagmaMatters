@@ -1,32 +1,18 @@
 <!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <title>MAGMA MATTERS</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/addons/p5.dom.min.js"></script>
-    <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
-    <main>
-      <div id="ui-panel">
-        <h2>Etapas</h2>
-        <div id="botones-etapas"></div>
-        <label>MOVE X</label>
-        <input type="range" id="moveX" min="-1" max="1" step="0.01" value="0" />
-        <label>MOVE Y</label>
-        <input type="range" id="moveY" min="-1" max="1" step="0.01" value="0" />
-        <label>ROTATION</label>
-        <input type="range" id="rotation" min="-1" max="1" step="0.01" value="0" />
-        <label>SIZE</label>
-        <input type="number" id="textSize" value="24" />
-        <label>THICKNESS</label>
-        <input type="number" id="thickness" step="0.1" value="0.5" />
-        <label><input type="checkbox" id="zoomCheckbox" checked /> ZOOM</label>
-        <label><input type="checkbox" id="dragCheckbox" checked /> DRAG</label>
-        <button id="exportSVG">EXPORTAR SVG</button>
-      </div>
-    </main>
-    <script src="sketch.js"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MAGMA MATTERS</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/addons/p5.dom.min.js"></script>
+</head>
+<body>
+  <main>
+    <div id="gui-container"></div>
+    <div id="message">Cargando visualización MAGMA MATTERS...</div>
+  </main>
+  <script src="sketch.js"></script>
+</body>
 </html>
