@@ -1,0 +1,17 @@
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #ffffff;
+  font-family: 'Source Code Pro', monospace;
+  color: #000000;
+}
+
+canvas {
+  display: block;
+}
+
+main {
+  display: flex;
+  flex-direction: row;
+}
