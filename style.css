@@ -1,8 +1,42 @@
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
-  background-color: #fff;
+  padding: 0;
+  font-family: sans-serif;
+  background-color: #ffffff;
 }
-canvas {
+
+#ui-panel {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: #f0f0f0;
+  padding: 20px;
+  border-radius: 10px;
+  width: 320px;
+  z-index: 10;
+}
+
+#ui-panel h2 {
+  margin-top: 0;
+  font-size: 1.3em;
+}
+
+#ui-panel label {
   display: block;
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+#ui-panel input[type="range"],
+#ui-panel input[type="number"] {
+  width: 90%;
+  margin-bottom: 5px;
+}
+
+#botones-etapas {
+  margin-bottom: 10px;
+}
+
+#botones-etapas button {
+  margin: 2px;
 }
