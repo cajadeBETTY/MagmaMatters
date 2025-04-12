@@ -1,0 +1,6 @@
+volcan,Tmin,Tmax,Years,Temp Type
+Erosion,5,40,100000,Range
+Cooling,15,1200,250000,Range
+Eruption,1000,1300,150000,Constant
+Rising,200,800,300000,Constant
+Formation,100,600,400000,Constant
