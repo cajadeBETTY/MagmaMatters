@@ -1,4 +1,3 @@
-
 let table;
 let etapas = [];
 let lineCounts = [];
@@ -42,11 +41,23 @@ function setup() {
     let nombre = table.getString(r, "volcan");
     let minT = table.getNum(r, "Tmin");
     let maxT = table.getNum(r, "Tmax");
-    let midT = (minT + maxT) / 2;
-
     let years = table.getNum(r, "Years");
-    if (isNaN(years)) years = 0;
 
+    // Validación
+    if (isNaN(minT)) {
+      console.error(`Fila ${r}: Tmin es inválido para ${nombre}`);
+      minT = 0;
+    }
+    if (isNaN(maxT)) {
+      console.error(`Fila ${r}: Tmax es inválido para ${nombre}`);
+      maxT = 0;
+    }
+    if (isNaN(years)) {
+      console.warn(`Fila ${r}: Years es inválido para ${nombre}`);
+      years = 0;
+    }
+
+    let midT = (minT + maxT) / 2;
     let lines = int(map(years, 0, 500000, 5, 120));
 
     etapas.push(r);
@@ -82,7 +93,6 @@ function draw() {
     strokeWeight(grosores[i]);
     for (let j = 0; j < n; j++) {
       let y = yBase + j * espacio;
-
       beginShape();
       for (let x = panelAncho; x < width; x += 10) {
         let ruido = noise(x * 0.005, y * 0.005, i * 10) * 40;
