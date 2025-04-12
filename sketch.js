@@ -1,193 +1,195 @@
 let table;
 let etapas = ["Erosion", "Cooling", "Eruption", "Rising", "Formation"];
-let lineCounts = [];
-let bloqueAlturas = [];
+let lineCounts = [50, 60, 30, 80, 100];
+let bloqueAlturas = [0, 0, 0, 0, 0];
 let temperaturas = [];
-let posicionesX = [];
-let posicionesY = [];
-let rotaciones = [];
-let tamanios = [];
-let grosorLinea = [];
+let posicionesX = [], posicionesY = [], rotaciones = [], tamanios = [], grosorLinea = [];
 
 let selectedEtapa = 0;
+let zoomEnabled = true;
+let dragEnabled = true;
+let dragging = false;
 let zoom = 1;
-let offsetX = 0;
-let offsetY = 0;
+let offsetX = 0, offsetY = 0, lastMouseX = 0, lastMouseY = 0;
 
-let sliderX, sliderY, sliderR, sliderT, inputSize, exportButton;
-let font;
+let sliders = {};
+let svgExporting = false;
 
 function preload() {
   table = loadTable("data/escalas_magma_matter.csv", "header");
 }
 
 function setup() {
-  createCanvas(windowWidth, windowHeight);
-  angleMode(DEGREES);
-
-  // Cargar datos
+  createCanvas(windowWidth, windowHeight, SVG);
+  textAlign(CENTER, CENTER);
   for (let i = 0; i < etapas.length; i++) {
-    let etapa = etapas[i];
-    let rows = table.findRows(etapa, 'volcan');
-    lineCounts.push(rows.length);
-    bloqueAlturas.push(rows.length * 8);
-    temperaturas.push(rows.map(r => mapDistorsionadoContinuo(float(r.get("Tmin")), etapa)));
-    grosorLinea.push((etapa === "Cooling") ? 0.6 : 0.25);
-    posicionesX.push(0.5);
-    posicionesY.push(0.0);
-    rotaciones.push(0);
-    tamanios.push(38);
+    posicionesX[i] = 100;
+    posicionesY[i] = 0;
+    rotaciones[i] = 0;
+    tamanios[i] = 24;
+    grosorLinea[i] = 0.5;
   }
-
-  createGUI();
+  calcularBloqueAlturas();
+  setupUI();
+  noLoop();
 }
 
 function draw() {
-  background(255);
-  translate(width / 2 + offsetX, height / 2 + offsetY);
-  scale(zoom);
+  if (!svgExporting) {
+    resizeCanvas(windowWidth, windowHeight);
+    clear();
+    if (dragEnabled && dragging) {
+      offsetX += mouseX - lastMouseX;
+      offsetY += mouseY - lastMouseY;
+    }
+    translate(offsetX, offsetY);
+    scale(zoom);
+  }
 
-  drawBloques();
-  drawEscalaHorizontal();
+  background(255);
+  drawEscalaTemperatura();
+  let yOffset = 50;
+  for (let i = 0; i < etapas.length; i++) {
+    push();
+    translate(posicionesX[i], yOffset + posicionesY[i]);
+    rotate(radians(rotaciones[i]));
+    fill(0);
+    noStroke();
+    textSize(tamanios[i]);
+    text(etapas[i], 200, bloqueAlturas[i] / 2);
+    stroke(0);
+    strokeWeight(grosorLinea[i]);
+    drawEtapa(i, bloqueAlturas[i]);
+    pop();
+    yOffset += bloqueAlturas[i] + 40;
+  }
+
+  if (!svgExporting) dragging = false;
 }
 
-function drawBloques() {
-  let y = -height / 2;
-  for (let i = 0; i < etapas.length; i++) {
-    let xPos = posicionesX[i] * width - width / 2;
-    let yPos = y + posicionesY[i] * bloqueAlturas[i];
-    let ang = rotaciones[i];
-    let tam = tamanios[i];
-    let grosor = grosorLinea[i];
-
-    push();
-    translate(xPos, yPos);
-    rotate(ang);
-    stroke(0);
-    strokeWeight(grosor);
-    noFill();
-
-    for (let j = 0; j < lineCounts[i]; j++) {
-      let t = temperaturas[i][j];
-      line(0, j * 8, t, j * 8);
-    }
-
-    pop();
-    y += bloqueAlturas[i] + 20;
+function drawEtapa(idx, h) {
+  let n = lineCounts[idx];
+  let yStep = h / n;
+  for (let i = 0; i < n; i++) {
+    let y = i * yStep;
+    let noiseVal = noise(i * 0.1, idx);
+    let x1 = 0;
+    let x2 = 300 + noiseVal * 50 * (idx == 0 ? 0.5 : idx == 1 ? 1.5 : 0.2);
+    line(x1, y, x2, y);
   }
 }
 
-function drawEscalaHorizontal() {
-  stroke(150);
-  strokeWeight(0.5);
-  noFill();
-
-  for (let i = 0; i <= 5; i++) {
-    let x = map(i, 0, 5, -width / 2 + 100, width / 2 - 100);
-    line(x, -height / 2, x, height / 2);
+function drawEscalaTemperatura() {
+  let ticks = [0, 5, 15, 40, 1200, 1600];
+  for (let t of ticks) {
+    let x = map(t, 0, 1600, 50, width - 50);
+    stroke(0);
+    strokeWeight(t === 40 ? 1.5 : 0.5);
+    drawingContext.setLineDash(t === 40 ? [10, 10] : [5, 5]);
+    line(x, 0, x, height);
+    drawingContext.setLineDash([]);
     noStroke();
     fill(0);
     textSize(12);
-    textAlign(CENTER);
-    text(i * 10 + "°C", x, -height / 2 + 20);
-    stroke(150);
+    text(`${t}°C`, x, 20);
+    text(`${t}°C`, x, height - 20);
   }
 }
 
-function createGUI() {
-  let gui = createDiv().parent("gui-container");
+function setupUI() {
+  let container = select("#ui-container");
+  container.html("<h2>Etapas</h2>");
 
-  let title = createElement('h2', 'Etapas').parent(gui);
-
-  for (let i = 0; i < etapas.length; i++) {
-    let btn = createButton(etapas[i]).parent(gui);
-    btn.mousePressed(() => selectedEtapa = i);
-  }
-
-  createP("MOVE X").parent(gui);
-  sliderX = createSlider(0, 1, 0.5, 0.01).parent(gui);
-  sliderX.input(() => posicionesX[selectedEtapa] = sliderX.value());
-
-  createP("MOVE Y").parent(gui);
-  sliderY = createSlider(-1, 1, 0.0, 0.01).parent(gui);
-  sliderY.input(() => posicionesY[selectedEtapa] = sliderY.value());
-
-  createP("ROTATION").parent(gui);
-  sliderR = createSlider(-180, 180, 0, 1).parent(gui);
-  sliderR.input(() => rotaciones[selectedEtapa] = sliderR.value());
-
-  createP("SIZE").parent(gui);
-  inputSize = createInput("24").parent(gui);
-  inputSize.input(() => tamanios[selectedEtapa] = float(inputSize.value()));
-
-  createP("THICKNESS").parent(gui);
-  sliderT = createInput("0.5").parent(gui);
-  sliderT.input(() => grosorLinea[selectedEtapa] = float(sliderT.value()));
-
-  createCheckbox("ZOOM", true).parent(gui).changed(e => zoom = e.target.checked ? 1.2 : 1);
-  createCheckbox("DRAG", true).parent(gui);
-
-  exportButton = createButton("EXPORTAR SVG").parent(gui);
-  exportButton.mousePressed(exportarComoSVG);
-}
-
-function exportarComoSVG() {
-  let svg = createGraphics(width, height, SVG);
-  svg.clear();
-  svg.translate(width / 2, height / 2);
-
-  for (let i = 0; i < etapas.length; i++) {
-    let xPos = posicionesX[i] * width - width / 2;
-    let yPos = posicionesY[i] * bloqueAlturas[i] - height / 2;
-    let ang = rotaciones[i];
-    let tam = tamanios[i];
-    let grosor = grosorLinea[i];
-
-    svg.push();
-    svg.translate(xPos, yPos);
-    svg.rotate(radians(ang));
-    svg.stroke(0);
-    svg.strokeWeight(grosor);
-    svg.noFill();
-
-    for (let j = 0; j < lineCounts[i]; j++) {
-      let t = temperaturas[i][j];
-      svg.line(0, j * 8, t, j * 8);
-    }
-
-    svg.pop();
-  }
-
-  saveSVG(svg, "magma_matters_" + Date.now() + ".svg");
-}
-
-function saveSVG(pg, filename) {
-  pg.canvas.toBlob(function(blob) {
-    let a = document.createElement("a");
-    document.body.appendChild(a);
-    a.style = "display: none";
-    let url = URL.createObjectURL(blob);
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-    a.remove();
+  etapas.forEach((etapa, idx) => {
+    let btn = createButton(etapa);
+    btn.parent(container);
+    btn.mousePressed(() => {
+      selectedEtapa = idx;
+      updateSliders();
+    });
   });
+
+  createP("MOVE X").parent(container);
+  sliders.x = createSlider(-200, 200, 0).parent(container).input(() => {
+    posicionesX[selectedEtapa] = sliders.x.value();
+    redraw();
+  });
+
+  createP("MOVE Y").parent(container);
+  sliders.y = createSlider(-200, 200, 0).parent(container).input(() => {
+    posicionesY[selectedEtapa] = sliders.y.value();
+    redraw();
+  });
+
+  createP("ROTATION").parent(container);
+  sliders.r = createSlider(-180, 180, 0).parent(container).input(() => {
+    rotaciones[selectedEtapa] = sliders.r.value();
+    redraw();
+  });
+
+  createP("SIZE").parent(container);
+  sliders.s = createInput(tamanios[selectedEtapa]).parent(container).input(() => {
+    tamanios[selectedEtapa] = parseInt(sliders.s.value()) || 24;
+    redraw();
+  });
+
+  createP("THICKNESS").parent(container);
+  sliders.t = createInput(grosorLinea[selectedEtapa]).parent(container).input(() => {
+    grosorLinea[selectedEtapa] = parseFloat(sliders.t.value()) || 0.5;
+    redraw();
+  });
+
+  let zoomToggle = createCheckbox("ZOOM", zoomEnabled).parent(container);
+  zoomToggle.changed(() => {
+    zoomEnabled = zoomToggle.checked();
+  });
+
+  let dragToggle = createCheckbox("DRAG", dragEnabled).parent(container);
+  dragToggle.changed(() => {
+    dragEnabled = dragToggle.checked();
+  });
+
+  createButton("EXPORTAR SVG").parent(container).mousePressed(exportarSVG);
+  updateSliders();
 }
 
-function mapDistorsionadoContinuo(t, etapa) {
-  let tMin = (etapa === "Cooling") ? 40 : 5;
-  let tMax = (etapa === "Cooling") ? 1200 : 40;
-  let tMid = (tMin + tMax) / 2;
+function updateSliders() {
+  sliders.x.value(posicionesX[selectedEtapa]);
+  sliders.y.value(posicionesY[selectedEtapa]);
+  sliders.r.value(rotaciones[selectedEtapa]);
+  sliders.s.value(tamanios[selectedEtapa]);
+  sliders.t.value(grosorLinea[selectedEtapa]);
+}
 
-  let p;
-  if (t <= tMid) {
-    p = (t - tMin) / (tMid - tMin) * 0.3;
-  } else {
-    p = 0.3 + ((t - tMid) / (tMax - tMid)) * 0.7;
+function calcularBloqueAlturas() {
+  for (let i = 0; i < etapas.length; i++) {
+    bloqueAlturas[i] = 5 * lineCounts[i];
   }
+}
 
-  let xMin = 0;
-  let xMax = width / 3;
-  return xMin + p * (xMax - xMin);
+function mousePressed() {
+  if (dragEnabled && mouseX > 400) {
+    dragging = true;
+    lastMouseX = mouseX;
+    lastMouseY = mouseY;
+  }
+}
+
+function mouseReleased() {
+  dragging = false;
+}
+
+function mouseWheel(e) {
+  if (zoomEnabled && mouseX > 400) {
+    zoom *= e.delta > 0 ? 0.95 : 1.05;
+    return false;
+  }
+}
+
+function exportarSVG() {
+  svgExporting = true;
+  let timestamp = year() + "_" + nf(month(), 2) + "_" + nf(day(), 2) + "_" + nf(hour(), 2) + nf(minute(), 2);
+  let filename = `MAGMA_MATTERS_${timestamp}.svg`;
+  save(filename);
+  svgExporting = false;
 }
