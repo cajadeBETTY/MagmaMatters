@@ -5,38 +5,32 @@ body {
   background-color: #ffffff;
 }
 
-#ui-panel {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  background: #f0f0f0;
-  padding: 20px;
-  border-radius: 10px;
-  width: 320px;
-  z-index: 10;
+main {
+  display: flex;
 }
 
-#ui-panel h2 {
-  margin-top: 0;
-  font-size: 1.3em;
-}
-
-#ui-panel label {
+canvas {
   display: block;
+}
+
+#gui-container {
+  position: absolute;
+  top: 1em;
+  left: 1em;
+  padding: 1em;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+}
+
+button {
   margin-top: 10px;
-  font-size: 13px;
 }
 
-#ui-panel input[type="range"],
-#ui-panel input[type="number"] {
-  width: 90%;
-  margin-bottom: 5px;
-}
-
-#botones-etapas {
-  margin-bottom: 10px;
-}
-
-#botones-etapas button {
-  margin: 2px;
+#message {
+  position: absolute;
+  bottom: 1em;
+  left: 1em;
+  font-size: 16px;
+  color: #333;
 }
